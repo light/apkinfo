@@ -1,0 +1,39 @@
+#!/bin/bash
+
+if [ $# -eq 0 ]; then
+   echo "Syntax : $0 <apk file>"
+   exit 1
+fi
+
+if [ ! -e $1 ]; then
+   echo "APK file $1 does not exist."
+   exit 1
+fi
+
+echo "Checking $1 ..."
+
+aapt=$(find $ANDROID_HOME/build-tools/ -name aapt | sort | tail -n 1)
+
+tmpdir=$(mktemp -d)
+
+unzip "$1" META-INF/CERT.RSA -d $tmpdir >/dev/null
+IFS=$'\n'
+# Bash regexps need to be in variables to work properly
+name_regex="package.*name='([^']+)'"
+versionCode_regex="package.*versionCode='([^']+)'"
+versionName_regex="package.*versionName='([^']+)'"
+for info in $($aapt dump badging "$1"); do
+   if [[ $info =~ $name_regex ]]; then name="${BASH_REMATCH[1]}"; fi
+   if [[ $info =~ $versionCode_regex ]]; then versionCode="${BASH_REMATCH[1]}"; fi
+   if [[ $info =~ $versionName_regex ]]; then versionName="${BASH_REMATCH[1]}"; fi
+done
+unset IFS
+echo Package name : $name
+echo Version name : $versionName
+echo Version code : $versionCode
+
+package=$(echo $aaptgrep "package")
+fingerprint=$(keytool -printcert -file $tmpdir/META-INF/CERT.RSA | grep SHA1 | cut -d ' ' -f 3)
+echo Signing certificate SHA1 fingerprint : $fingerprint
+
+rm -rf $tmpdir

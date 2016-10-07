@@ -10,9 +10,13 @@ if [ ! -e $1 ]; then
    exit 1
 fi
 
-echo "Checking $1 ..."
-
 aapt=$(find $ANDROID_HOME/build-tools/ -name aapt | sort | tail -n 1)
+if [ -z $aapt ]; then
+   echo "aapt not found, make sure \$ANDROID_HOME is defined and the build-tools are installed."
+   exit 1
+fi
+
+echo "Checking $1 ..."
 
 tmpdir=$(mktemp -d)
 
@@ -32,7 +36,6 @@ echo Package name : $name
 echo Version name : $versionName
 echo Version code : $versionCode
 
-package=$(echo $aaptgrep "package")
 fingerprint=$(keytool -printcert -file $tmpdir/META-INF/CERT.RSA | grep SHA1 | cut -d ' ' -f 3)
 echo Signing certificate SHA1 fingerprint : $fingerprint
 
